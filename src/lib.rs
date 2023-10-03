@@ -7,7 +7,7 @@ const BETA : i128 = 2;
 const R : i128 = 60236253349;
 const RINV : i128 = 44310963719;
 const RBITS : i128 = 36;
-
+const RBITSZERO : bool = true;
 #[derive(Copy, Clone,Debug)]
 struct Fp<T> {
     x : T
@@ -129,7 +129,7 @@ impl F12 {
     }
     fn from_i128(x : i128) -> F12 {
         let mut r = F12::new();
-        r.coff[0] = Fp { x: x };
+        r.coff[0] = Fp { x: x % P};
         r
     }
     fn from_i128_vec(x : Vec<i128>) -> F12 {
@@ -278,6 +278,9 @@ impl Div for F12 {
     type Output = F12;
 
     fn div(self, other: F12) -> F12 {
+        if other == F12::new() {
+            panic!("Divide by zero");
+        }
         let r: F12 = self.gauss_elimination(other);
         r
     }
@@ -437,47 +440,171 @@ impl Sub for PointExt {
     }
 }
     
-fn miller_loop(p: PointExt, q: PointExt) -> F12 {
+// fn miller_loop(p: PointExt, q: PointExt) -> F12 {
+//     let mut fs: F12 = F12::from_i128(1);
+//     let mut fqs: F12 = F12::from_i128(1);
+
+//     let mut mp = p;
+//     let mut gr: F12 = F12::from_i128(1);
+//     let mut gpr: F12 = F12::from_i128(1);
+
+//     let mut mq = q;
+
+//     let r: PointExt = PointExt { x: F12::from_i128(17176068116), y: F12::from_i128(7580738103), z: F12::from_i128(1) };
+//     let s: PointExt = PointExt { x: F12::from_i128(8723413231), y: F12::from_i128(27668901325), z: F12::from_i128(1) };
+//     let qs: PointExt = q + s;
+//     let pr: PointExt = p + r;
+    
+//     let bits: Vec<i32> = vec![1,0,1,0,0,1,0,1,0,0,0,1,0,0,1,0,0,0,1,1,1,0,1,0,0,1,1,0,0,0,0,0,0,1,1,1];
+//     mp = p;
+//     mq = q;
+//     for i in 1..RBITS {
+//         let lmp2 = mp.x * mp.x * F12::from_i128(3) / (mp.y * F12::from_i128(2)) * (s.x - mp.x) + mp.y - s.y;
+//         let l2mp =  s.x - mp.x;
+//         fs = fs * fs * lmp2 / l2mp;
+//         mp = mp + mp;
+        
+//         if bits[i as usize] == 1 {
+//             let k = (mp.y - p.y) / (mp.x - p.x);
+//             let lmpp = k * (s.x - p.x) + p.y - s.y;
+//             let lmp = s.x - mp.x;
+//             mp = p + mp;
+//             fs = fs * lmpp / lmp;
+//         }
+//     }
+//     let k = (p.y - r.y) / (p.x - r.x);
+//     let lpr = k * (s.x - r.x) + r.y - s.y;
+//     let v = s.x - pr.x;
+//     fs = fs / ((lpr / v).powmod(R as u64));
+
+//     mp = p;
+//     mq = q;
+
+//     for i in 1..RBITS {
+//         let lmp2 = mp.x * mp.x * F12::from_i128(3) / (mp.y * F12::from_i128(2)) * (qs.x - mp.x) + mp.y - s.y;
+//         let l2mp =  qs.x - mp.x;
+//         fs = fs * fs * lmp2 / l2mp;
+//         mp = mp + mp;
+        
+//         if bits[i as usize] == 1 {
+//             let k = (mp.y - p.y) / (mp.x - p.x);
+//             let lmpp = k * (qs.x - p.x) + p.y - qs.y;
+//             let lmp = qs.x - mp.x;
+//             mp = p + mp;
+//             fs = fs * lmpp / lmp;
+//         }
+//     }
+//     let k = (p.y - r.y) / (p.x - r.x);
+//     let lpr = k * (qs.x - r.x) + r.y - qs.y;
+//     let v = qs.x - pr.x;
+//     fqs = fqs / ((lpr / v).powmod(R as u64));
+
+//     let f = fqs/fs;
+
+//     mp = p;
+//     mq = q;
+
+//     for i in 1..RBITS {
+//         let lmp2 = mq.x * mq.x * F12::from_i128(3) / (mq.y * F12::from_i128(2)) * (r.x - mq.x) + mq.y - r.y;
+//         let l2mp =  r.x - mq.x;
+//         gr = gr * gr * lmp2 / l2mp;
+//         mq = mq + mq;
+        
+//         if bits[i as usize] == 1 {
+//             let k = (mq.y - q.y) / (mq.x - q.x);
+//             let lmpp = k * (r.x - q.x) + q.y - r.y;
+//             let lmp = r.x - mq.x;
+//             mq = q + mq;
+//             gr = gr * lmpp / lmp;
+//         }
+//     }
+//     let k = (q.y - s.y) / (q.x - s.x);
+//     let lqs = k * (r.x - s.x) + s.y - r.y;
+//     let v = r.x - qs.x;
+
+//     gr = gr / ((lqs / v).powmod(R as u64));
+
+//     mp = p;
+//     mq = q;
+    
+//     for i in 1..RBITS {
+//         let lmp2 = mq.x * mq.x * F12::from_i128(3) / (mq.y * F12::from_i128(2)) * (pr.x - mq.x) + mq.y - pr.y;
+//         let l2mp =  pr.x - mq.x;
+//         gpr = gpr * gpr * lmp2 / l2mp;
+//         mq = mq + mq;
+        
+//         if bits[i as usize] == 1 {
+//             let k = (mq.y - q.y) / (mq.x - q.x);
+//             let lmpp = k * (pr.x - q.x) + q.y - pr.y;
+//             let lmp = pr.x - mq.x;
+//             mq = q + mq;
+//             gpr = gpr * lmpp / lmp;
+//         }
+//     }
+//     let k = (q.y - s.y) / (q.x - s.x);
+//     let lqs = k * (pr.x - s.x) + s.y - pr.y;
+//     let v = pr.x - qs.x;
+
+//     gpr = gpr / ((lqs / v).powmod(R as u64));
+//     let g = gpr/gr;
+    
+//     f/g
+// }
+//without s and r
+fn miller_loop_t(p: PointExt, q: PointExt) -> F12 {
     let mut f: F12 = F12::from_i128(1);
+    let mut g: F12 = F12::from_i128(1);
     let mut mp = p;
-    // let mut g: F12 = F12::from_i128(1);
-    // let mut mq = q;
+    let mut mq = q;
 
-
-    let bits = vec![1,0,1,0,0,1,0,1,0,0,0,1,0,0,1,0,0,0,1,1,1,0,1,0,0,1,1,0,0,0,0,0,0,1,1,1];
+    let bits: Vec<i32> = vec![1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1];
 
     for i in 1..RBITS {
-        let lmp2 = mp.x * mp.x * F12::from_i128(3) / (mp.y * F12::from_i128(2)) * (q.x - mp.x) + mp.y - q.y;
-        let l2mp =  q.x - mp.x;
-        f = f * f * lmp2 / l2mp;
-        mp = mp + mp;
+        let lmp2 = -(mp.x * mp.x * F12::from_i128(3) / (mp.y * F12::from_i128(2)) * (q.x - mp.x) + mp.y - q.y);
         
+        mp = mp + mp;
+        let l2mp =  q.x - mp.x;
+        
+        f = f * f * lmp2 / l2mp;
         if bits[i as usize] == 1 {
-            let s = (mp.y - p.y) / (mp.x - p.x);
-            let lmpp = s * (q.x - p.x) + p.y - q.y;
-            let lmp = q.x - mp.x;
-            mp = p + mp;
-            f = f * lmpp / lmp;
+            if mp.x == p.x {
+                let lmpp = q.x - p.x;                
+                f = f * lmpp ;
+
+            } else {
+                let k = (mp.y - p.y) / (mp.x - p.x);
+                let lmpp = k * (q.x - p.x) + p.y - q.y;
+                mp = p + mp;
+                let lmp = q.x - mp.x;
+                f = f * lmpp / lmp;
+            }
         }
     }
 
-    // for i in 1..RBITS {
-    //     let lmq2 = mq.x * mq.x * F12::from_i128(3) / (mq.y * F12::from_i128(2)) * (p.x - mq.x) + mq.y;
-    //     let l2mq =  p.x - mq.x;
-    //     g = g * g * lmq2 / l2mq;
-    //     mq = mq + mq;
-        
-    //     if bits[i as usize] == 1 {
-    //         let s = (mq.y - q.y) / (mq.x - q.x);
-    //         let lmqq = s * (p.x - q.x) + q.y ;
-    //         let lmq = p.x - mq.x;
-    //         mq = q + mq;
-    //         g = g * lmqq / lmq;
-    //     }
-    // }
-    let k12dr : Vec<u64> = [0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1].to_vec();
-
-    f.powmodbits(k12dr)
+    for i in 1..RBITS {
+        let lmp2 = -(mq.x * mq.x * F12::from_i128(3) / (mq.y * F12::from_i128(2)) * (p.x - mq.x) + mq.y - p.y);
+        mq = mq + mq;
+        let l2mp =  p.x - mq.x;
+        g = g * g * lmp2 / l2mp;
+        if bits[i as usize] == 1 {
+            if mq.x == q.x  {
+                let lmpp = p.x - q.x;                
+                mq = q + mq;
+                g = g * lmpp ;
+            } else {
+                let k = (mq.y - q.y) / (mq.x - q.x);
+                let lmpp = k * (p.x - q.x) + q.y - p.y;
+                mq = q + mq;
+                let lmp = p.x - mq.x;
+                g = g * lmpp / lmp;
+            }
+        }
+    }
+    if RBITSZERO {
+        f/g * F12::from_i128(-1)
+    } else {
+        f/g
+    }
 }
 #[cfg(test)]
 mod tests {
@@ -538,20 +665,18 @@ mod tests {
     } 
     #[test]
     fn test_miller_loop(){
-        let xa = F12::from_i128_vec(vec![59649468771, 27477382595, 54970258839, 24464396194, 50445504362, 6691406414, 15613152500, 57679389230, 36873964818, 49047050504, 37627375104,25144576512]);
-        let ya = F12::from_i128_vec(vec![21585877989, 22868212910, 15172448012, 14052413555, 45604206563, 44997454193, 9764794103, 21639994320, 24355274013, 55237684856, 21354386475,56640594939]);
         let xa = F12::from_i128(49015138457);
         let ya = F12::from_i128(36336695411);
         let a = PointExt{x : xa, y : ya, z : F12::from_i128(1)};
         let xb = F12::from_i128_vec(vec![52649681422, 58330021724, 18361934063, 37544484019, 48378959847, 34344081429, 20873394922, 26784166228, 25856414820, 31733507710, 1579608448,25687127276]);
         let yb = F12::from_i128_vec(vec![36962872648, 28863545577, 49052618431, 14807993877, 27927561526, 25370717733, 16963613074, 45537344140, 11799967561, 30748944721, 10754770505,42033372585]);
         let b = PointExt{x : xb, y : yb, z : F12::from_i128(1)};
-        let e = b + b;
-        let c = miller_loop(a,b);
-        let d = miller_loop(a,e);
-        print!("{}\n", c.powmod(R as u64).coff[0].x);
+        let e = b.scale(3);
+        let c = miller_loop_t(a,b);
+        let d = miller_loop_t(a,e);
+        print!("{}\n", c.coff[0].x);
+        // assert!(false);
         // print!("{}\n", (c*c).coff[0].x);
-        print!("{}\n",(c * c / d).coff[0].x );
-        assert!((c * c / d).coff[0].x == 1);
+        assert!((c.powmod(3) / d).coff[0].x == 1);
     }
 }
